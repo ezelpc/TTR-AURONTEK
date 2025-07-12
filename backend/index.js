@@ -1,5 +1,5 @@
 import express from 'express';
-import supabase from './utils/supabaseClient'; // Importar el cliente de Supabase
+import supabase from './src/utils/supabaseClient'; // Importar el cliente de Supabase
 
 const app = express();
 const PORT = process.env.PORT || 3000;
