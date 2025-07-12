@@ -1,10 +1,20 @@
 import express from 'express';
-import supabase from './src/utils/supabaseClient'; // Importar el cliente de Supabase
+import cors from 'cors';
+import dotenv from 'dotenv';
+import authRoutes from './src/routes/auth.routes.js';
+import  supabase  from './src/utils/supabaseClient';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middlewares
+app.use(cors());
+app.use(express.json());
 
+// Rutas
+app.use('/api/auth', authRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

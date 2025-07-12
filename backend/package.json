@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf dist dist-obfuscated",
-    "dev": "nodemon --exec babel-node src/index.js",
-    "build": "npm run clean && babel src -d dist --source-maps",
-    "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening true --self-defending true",
-    "build:secure": "npm run build",
+    "dev": "nodemon --exec babel-node index.js",
+    "build": "npm run clean && babel index.js -d dist --source-maps && babel src -d dist/src --source-maps",
+    "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true",
+    "build:secure": "npm run build && npm run postbuild",
     "serve": "node dist-obfuscated/index.js"
   },
   "keywords": [],
@@ -17,8 +17,12 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.5",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.0",
