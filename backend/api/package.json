@@ -4,20 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "clean": "rimraf dist dist-obfuscated",
-  "dev": "babel-node src/index.js",
-  "build": "npm run clean && babel src -d dist --source-maps",
-  "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening true --self-defending true",
-  "build:secure": "npm run build",
-  "serve": "node dist-obfuscated/index.js"
-}
-,
+    "clean": "rimraf dist dist-obfuscated",
+    "dev": "nodemon --exec babel-node src/index.js",
+    "build": "npm run clean && babel src -d dist --source-maps",
+    "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening true --self-defending true",
+    "build:secure": "npm run build",
+    "serve": "node dist-obfuscated/index.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.5",
+    "dotenv": "^17.2.0",
     "express": "^5.1.0"
   },
   "devDependencies": {
@@ -26,6 +26,7 @@
     "@babel/node": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
     "javascript-obfuscator": "^4.1.1",
+    "nodemon": "^3.1.10",
     "rimraf": "^6.0.1"
   }
 }
