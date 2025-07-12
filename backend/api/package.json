@@ -4,10 +4,28 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "clean": "rimraf dist dist-obfuscated",
+  "dev": "babel-node src/index.js",
+  "build": "npm run clean && babel src -d dist --source-maps",
+  "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true --control-flow-flattening true --self-defending true",
+  "build:secure": "npm run build",
+  "serve": "node dist-obfuscated/index.js"
+}
+,
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.5",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.28.0",
+    "@babel/node": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "javascript-obfuscator": "^4.1.1",
+    "rimraf": "^6.0.1"
+  }
 }
