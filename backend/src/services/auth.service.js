@@ -1,5 +1,5 @@
-import { supabase } from '../utils/supabaseClient.js';
-import { hashPassword } from '../utils/hash.js';
+import supabase  from '../utils/supabaseClient.js';
+import { hashPassword, comparePassword } from '../utils/hash.js';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -44,4 +44,36 @@ export async function registrarUsuario({
   }
 
   return { ok: true, mensaje: 'Usuario registrado correctamente' };
+}
+
+export async function loginUsuario({ correo, contraseña }) {
+  const { data: usuario, error } = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('correo', correo)
+    .maybeSingle();
+  if (error || !usuario) {
+    throw new Error('Usuario o contraseña incorrectos');
+  }
+
+ const esValido = await comparePassword(contraseña, usuario.contraseña);
+  if (!esValido) {
+    throw new Error('Usuario o contraseña incorrectos');
+  }
+
+  // Generar token JWT
+  const token = jwt.sign(
+    { id: usuario.id, correo: usuario.correo, rol: usuario.rol },
+    process.env.JWT,
+    { expiresIn: '1h' }
+  );
+
+  return { ok: true, mensaje: 'Login exitoso',usuario: {
+    id: usuario.id,
+    nombre: usuario.nombre,
+    correo: usuario.correo,
+    rol: usuario.rol,
+    foto_url: usuario.foto_url,
+    activo: usuario.activo
+  }, token };
 }
