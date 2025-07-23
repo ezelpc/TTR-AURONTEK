@@ -1,6 +1,7 @@
 node_modules/
 package-lock.json
 .env
+.env.local
 dist/
 dist-obfuscated/
 logs/
@@ -10,3 +11,4 @@ npm-debug.log*
 .idea/
 .vscode/
 coverage/
+supabase/
