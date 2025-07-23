@@ -56,24 +56,24 @@ export async function loginUsuario({ correo, contraseña }) {
     throw new Error('Usuario o contraseña incorrectos');
   }
 
- const esValido = await comparePassword(contraseña, usuario.contraseña);
+  const esValido = await comparePassword(contraseña, usuario.contraseña);
   if (!esValido) {
     throw new Error('Usuario o contraseña incorrectos');
   }
 
-  // Generar token JWT
   const token = jwt.sign(
     { id: usuario.id, correo: usuario.correo, rol: usuario.rol },
     process.env.JWT,
     { expiresIn: '1h' }
   );
 
-  return { ok: true, mensaje: 'Login exitoso',usuario: {
-    id: usuario.id,
-    nombre: usuario.nombre,
-    correo: usuario.correo,
-    rol: usuario.rol,
-    foto_url: usuario.foto_url,
-    activo: usuario.activo
-  }, token };
+  // 👇 Aquí está la corrección
+  const { contraseña: _, ...safeUser } = usuario;
+
+  return {
+    ok: true,
+    mensaje: 'Login exitoso',
+    usuario: safeUser,
+    token
+  };
 }
