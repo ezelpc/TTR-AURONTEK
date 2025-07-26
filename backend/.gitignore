@@ -13,3 +13,4 @@ npm-debug.log*
 coverage/
 supabase/
 pruebas.http
+IA_Urgencia_Test.http

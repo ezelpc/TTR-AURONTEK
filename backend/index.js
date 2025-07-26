@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './src/routes/auth.routes.js';
 import incidenteRoutes from './src/routes/incidente.routes.js';
 import  supabase  from './src/utils/supabaseClient';
+import iaRoutes from './src/routes/ia.routes.js';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/incidentes', incidenteRoutes);
+app.use('/api/ia', iaRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
