@@ -10,7 +10,8 @@ export async function registrarUsuario({
   rol,
   puede_crear_usuarios = false,
   foto_url = '',
-  activo = true
+  activo = true,
+  area,
 }) {
   // Verificar si ya existe
   const { data: existente } = await supabase
@@ -36,7 +37,8 @@ export async function registrarUsuario({
     puede_crear_usuarios,
     foto_url,
     activo,
-    fecha_registro
+    fecha_registro,
+    area
   });
 
   if (error) {

@@ -13,4 +13,8 @@ npm-debug.log*
 coverage/
 supabase/
 pruebas.http
+<<<<<<< HEAD
 hashadmin.js
+=======
+IA_Urgencia_Test.http
+>>>>>>> d1f664fe702cc9c7bd433eab53e86aeb40a93c49
