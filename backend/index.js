@@ -19,11 +19,7 @@ app.use(express.json());
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/incidentes', incidenteRoutes);
-<<<<<<< HEAD
 app.use('/admin',adminRoutes);
-=======
-app.use('/api/ia', iaRoutes);
->>>>>>> d1f664fe702cc9c7bd433eab53e86aeb40a93c49
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
