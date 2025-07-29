@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './src/routes/auth.routes.js';
 import incidenteRoutes from './src/routes/incidente.routes.js';
+import adminRoutes from './src/routes/admin.routes.js';
 import  supabase  from './src/utils/supabaseClient';
 
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.json());
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/incidentes', incidenteRoutes);
+app.use('/admin',adminRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

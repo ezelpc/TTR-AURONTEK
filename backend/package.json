@@ -9,7 +9,8 @@
     "build": "npm run clean && babel index.js -d dist --source-maps && babel src -d dist/src --source-maps",
     "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true",
     "build:secure": "npm run build && npm run postbuild",
-    "serve": "node dist-obfuscated/index.js"
+    "serve": "node dist-obfuscated/index.js",
+  "hash": "babel-node src/utils/hashadmin.js"
   },
   "keywords": [],
   "author": "",
