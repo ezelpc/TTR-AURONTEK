@@ -1,0 +1,80 @@
+### ✅ Registro de usuario
+POST http://localhost:3000/api/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Andrea Torres",
+  "correo": "andrea@example.com",
+  "contraseña": "segura123",
+  "rol": "usuario",
+  "puede_crear_usuarios": false,
+  "activo": true,
+  "foto_url": "https://i.pravatar.cc/150?img=5"
+}
+
+### ✅ Login de usuario
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "correo": "andrea@example.com",
+  "contraseña": "segura123"
+}
+
+### ✅ Login de usuario con rol de administrador
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "correo": "admin@example.com",
+  "contraseña": "segura123"
+}
+
+### ✅ Crear incidencia (requiere TOKEN)
+# 🔁 Reemplaza el token con el JWT obtenido en el login
+POST http://localhost:3000/api/incidentes
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImMyNTI4NGRjLTA3ZTAtNDk2Ny1hYjY1LTZlYTA5MWNhMDM0ZiIsImNvcnJlbyI6ImFuZHJlYUBleGFtcGxlLmNvbSIsInJvbCI6InVzdWFyaW8iLCJpYXQiOjE3NTMyNjY1NDcsImV4cCI6MTc1MzI3MDE0N30.MdCaudIt62kdqcYOuGccpqB6ujmSMpWH908LC0ONf8I
+Content-Length: 0
+
+{
+  "titulo": "Extintor vencido en bodega",
+  "descripcion": "El extintor ubicado en la bodega tiene fecha de vencimiento pasada.",
+  "urgencia": "alto"
+}
+
+
+### admin login
+POST http://localhost:3000/admin/login
+Content-Type: application/json
+
+{
+  "correo": "sofia@aurontek.com",
+  "contraseña": "secreta123"
+}
+
+### Registrar nueva empresa con contratante y licencia
+POST http://localhost:3000/admin/empresas/crear
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwLWZmYjktNDYxNy05YjFjLWExOTA4NWUxZmNiYSIsImNvcnJlbyI6InNvZmlhQGF1cm9udGVrLmNvbSIsIm5vbWJyZSI6IlNvZsOtYSBSZXllcyIsImFkbWluIjp0cnVlLCJpYXQiOjE3NTM3ODczNjcsImV4cCI6MTc1Mzc5MDk2N30.XjJntqvtGKlMKZMXei0mw7uf2X0oz7H_ZHDN4g6H42s
+
+{
+  "nombre_empresa": "Grupo Omega",
+  "rfc": "OME800123ABC",
+  "telefono": "5551234567",
+  "direccion": "Av. Central 123",
+  "correo_contacto": "contacto@omega.com",
+
+  "contratante": {
+    "nombre": "Laura Pérez",
+    "correo": "laura@omega.com",
+    "telefono": "5559876543",
+    "puesto": "Gerente TI"
+  },
+
+  "licencia": {
+    "fecha_inicio": "2025-08-01",
+    "fecha_fin": "2026-08-01",
+    "plan": "Pro"
+  }
+}
