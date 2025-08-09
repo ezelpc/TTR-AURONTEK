@@ -10,7 +10,8 @@
     "postbuild": "javascript-obfuscator dist --output dist-obfuscated --compact true",
     "build:secure": "npm run build && npm run postbuild",
     "serve": "node dist-obfuscated/index.js",
-  "hash": "babel-node src/utils/hashadmin.js"
+    "hash": "babel-node src/utils/hashadmin.js",
+    "cache": "rmdir /s /q node_modules && del package-lock.json && npm cache clean --force"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +19,7 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.5",
-    "@tensorflow/tfjs-node": "^4.22.0",
+    "@tensorflow/tfjs": "^4.22.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
@@ -34,7 +35,6 @@
     "@babel/preset-env": "^7.28.0",
     "javascript-obfuscator": "^4.1.1",
     "nodemon": "^3.1.10",
-    "rimraf": "^6.0.1",
-    "supabase": "^2.31.8"
+    "rimraf": "^6.0.1"
   }
 }

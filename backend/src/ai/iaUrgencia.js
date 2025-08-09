@@ -1,5 +1,5 @@
 // iaUrgencia.js
-import * as tf from '@tensorflow/tfjs-node';
+import * as tf from '@tensorflow/tfjs';
 import natural from 'natural';
 import fs from 'fs';
 
