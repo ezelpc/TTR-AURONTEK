@@ -17,8 +17,8 @@ POST http://localhost:3000/api/auth/login
 Content-Type: application/json
 
 {
-  "correo": "andrea@example.com",
-  "contraseña": "segura123"
+  "correo": "laura@omega.com",
+  "contraseña": "3ty7q!U!pX"
 }
 
 ### ✅ Login admin sistema
@@ -44,19 +44,12 @@ Content-Length: 0
 }
 
 
-### admin login
-POST http://localhost:3000/admin/login
-Content-Type: application/json
 
-{
-  "correo": "sofia@aurontek.com",
-  "contraseña": "secreta123"
-}
 
 ### Registrar nueva empresa con contratante y licencia
 POST http://localhost:3000/admin/empresas/crear
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYzljYWY3LTQyOGUtNDBlOC1iOTIwLTgxYjZjZWU3NjFiNSIsImNvcnJlbyI6InNvZmlhQGF1cm9udGVrLmNvbSIsInB1ZXN0byI6IkFkbWluaXN0cmFkb3IgR2VuZXJhbCIsImFkbWluIjp0cnVlLCJpYXQiOjE3NTU4NTQ4NTAsImV4cCI6MTc1NTg4MzY1MH0.2J8ANaK5Tj6pvRoOWs420n3IYQd5rD46dGkiWlvqjZg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzNjhiNTFlLTQ4YWYtNDRmZS05ZjliLTRhM2MwYjkxMjc4NCIsImNvcnJlbyI6ImxhdXJhQG9tZWdhLmNvbSIsInJvbCI6ImdlcmVudGVfY2xpZW50ZSIsImlhdCI6MTc1NTg1NzQyMCwiZXhwIjoxNzU1ODYxMDIwfQ.Yi1QjKXm4fXi1Oh5qZ_0Jy0Q2dNB6dv5-6lXPfgROFs
 
 {
   "nombre_empresa": "Grupo Omega",

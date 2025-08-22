@@ -6,6 +6,7 @@ import incidenteRoutes from './src/routes/incidente.routes.js';
 import adminRoutes from './src/routes/admin.routes.js';
 import  supabase  from './src/utils/supabaseClient';
 import iaRoutes from './src/routes/ia.routes.js';
+import adminSistemaRoutes from './src/routes/admin-sistema.routes.js'
 
 dotenv.config();
 
@@ -20,7 +21,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/incidentes', incidenteRoutes);
 app.use('/admin',adminRoutes);
-
+app.use('/api/admin-sistema', adminSistemaRoutes);
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
