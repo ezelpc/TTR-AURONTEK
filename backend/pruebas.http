@@ -34,7 +34,7 @@ Content-Type: application/json
 # 🔁 Reemplaza el token con el JWT obtenido en el login
 POST http://localhost:3000/api/incidentes
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0YjYyYjlkLWRiYmQtNGQ5YS1iYmM3LTI2YTE4ODIwMDNlOCIsImNvcnJlbyI6ImFuZHJlYUBleGFtcGxlLmNvbSIsInJvbCI6InVzdWFyaW8iLCJpYXQiOjE3NTU4NTIzNjksImV4cCI6MTc1NTg1NTk2OX0.9FjkzsCMSQ-N4snTD4GAyA3lmeoRZF9VVIKgdEzTY6Y
+Authorization: Bearer 
 Content-Length: 0
 
 {
@@ -49,7 +49,7 @@ Content-Length: 0
 ### Registrar nueva empresa con contratante y licencia
 POST http://localhost:3000/admin/empresas/crear
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzNjhiNTFlLTQ4YWYtNDRmZS05ZjliLTRhM2MwYjkxMjc4NCIsImNvcnJlbyI6ImxhdXJhQG9tZWdhLmNvbSIsInJvbCI6ImdlcmVudGVfY2xpZW50ZSIsImlhdCI6MTc1NTg1NzQyMCwiZXhwIjoxNzU1ODYxMDIwfQ.Yi1QjKXm4fXi1Oh5qZ_0Jy0Q2dNB6dv5-6lXPfgROFs
+Authorization: Bearer 
 
 {
   "nombre_empresa": "Grupo Omega",
