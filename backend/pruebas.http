@@ -21,13 +21,13 @@ Content-Type: application/json
   "contraseña": "segura123"
 }
 
-### ✅ Login de usuario con rol de administrador
-POST http://localhost:3000/api/auth/login
+### ✅ Login admin sistema
+POST http://localhost:3000/api/admin-sistema/login
 Content-Type: application/json
 
 {
-  "correo": "admin@example.com",
-  "contraseña": "segura123"
+  "correo": "sofia@aurontek.com",
+  "contraseña": "admin123"
 }
 
 ### ✅ Crear incidencia (requiere TOKEN)
@@ -56,7 +56,7 @@ Content-Type: application/json
 ### Registrar nueva empresa con contratante y licencia
 POST http://localhost:3000/admin/empresas/crear
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwLWZmYjktNDYxNy05YjFjLWExOTA4NWUxZmNiYSIsImNvcnJlbyI6InNvZmlhQGF1cm9udGVrLmNvbSIsIm5vbWJyZSI6IlNvZsOtYSBSZXllcyIsImFkbWluIjp0cnVlLCJpYXQiOjE3NTU4NTA5MTAsImV4cCI6MTc1NTg1NDUxMH0.tLDFLEgH0q-VYl622lSrWMO5li5rhAmbHQ35XdzzE4Y
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImIwYzljYWY3LTQyOGUtNDBlOC1iOTIwLTgxYjZjZWU3NjFiNSIsImNvcnJlbyI6InNvZmlhQGF1cm9udGVrLmNvbSIsInB1ZXN0byI6IkFkbWluaXN0cmFkb3IgR2VuZXJhbCIsImFkbWluIjp0cnVlLCJpYXQiOjE3NTU4NTQ4NTAsImV4cCI6MTc1NTg4MzY1MH0.2J8ANaK5Tj6pvRoOWs420n3IYQd5rD46dGkiWlvqjZg
 
 {
   "nombre_empresa": "Grupo Omega",
@@ -79,6 +79,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwL
     "plan": "Pro"
   }
 }
+
 
 
 
