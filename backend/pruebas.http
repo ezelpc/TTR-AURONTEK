@@ -34,7 +34,7 @@ Content-Type: application/json
 # 🔁 Reemplaza el token con el JWT obtenido en el login
 POST http://localhost:3000/api/incidentes
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImMyNTI4NGRjLTA3ZTAtNDk2Ny1hYjY1LTZlYTA5MWNhMDM0ZiIsImNvcnJlbyI6ImFuZHJlYUBleGFtcGxlLmNvbSIsInJvbCI6InVzdWFyaW8iLCJpYXQiOjE3NTMyNjY1NDcsImV4cCI6MTc1MzI3MDE0N30.MdCaudIt62kdqcYOuGccpqB6ujmSMpWH908LC0ONf8I
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0YjYyYjlkLWRiYmQtNGQ5YS1iYmM3LTI2YTE4ODIwMDNlOCIsImNvcnJlbyI6ImFuZHJlYUBleGFtcGxlLmNvbSIsInJvbCI6InVzdWFyaW8iLCJpYXQiOjE3NTU4NTIzNjksImV4cCI6MTc1NTg1NTk2OX0.9FjkzsCMSQ-N4snTD4GAyA3lmeoRZF9VVIKgdEzTY6Y
 Content-Length: 0
 
 {
@@ -56,7 +56,7 @@ Content-Type: application/json
 ### Registrar nueva empresa con contratante y licencia
 POST http://localhost:3000/admin/empresas/crear
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwLWZmYjktNDYxNy05YjFjLWExOTA4NWUxZmNiYSIsImNvcnJlbyI6InNvZmlhQGF1cm9udGVrLmNvbSIsIm5vbWJyZSI6IlNvZsOtYSBSZXllcyIsImFkbWluIjp0cnVlLCJpYXQiOjE3NTM3ODczNjcsImV4cCI6MTc1Mzc5MDk2N30.XjJntqvtGKlMKZMXei0mw7uf2X0oz7H_ZHDN4g6H42s
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwLWZmYjktNDYxNy05YjFjLWExOTA4NWUxZmNiYSIsImNvcnJlbyI6InNvZmlhQGF1cm9udGVrLmNvbSIsIm5vbWJyZSI6IlNvZsOtYSBSZXllcyIsImFkbWluIjp0cnVlLCJpYXQiOjE3NTU4NTA5MTAsImV4cCI6MTc1NTg1NDUxMH0.tLDFLEgH0q-VYl622lSrWMO5li5rhAmbHQ35XdzzE4Y
 
 {
   "nombre_empresa": "Grupo Omega",
@@ -70,6 +70,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwL
     "correo": "laura@omega.com",
     "telefono": "5559876543",
     "puesto": "Gerente TI"
+    
   },
 
   "licencia": {
@@ -78,3 +79,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzMTViMjYwL
     "plan": "Pro"
   }
 }
+
+
+

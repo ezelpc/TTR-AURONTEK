@@ -1,5 +1,6 @@
 import { loginAdminSistema} from '../services/admin.service';
-import { registrarEmpresaCompleta } from '../services/empresa.service';
+import { registrarEmpresaCompleta, getempresaByCodigo } from '../services/empresa.service';
+
 export async function loginAdmin(req, res){
   try {
     const respuesta = await loginAdminSistema(req.body);
@@ -19,6 +20,25 @@ export async function crearEmpresa(req, res) {
   } catch (err) {
     console.error('❌ Error al registrar empresa:', err.message);
     res.status(400).json({error: err.message});
+  }
+}
+
+export async function recibirCodigoAcceso(req, res) {
+  const { codigo } = req.params;
+  try {
+    const empresa = await getEmpresaByCodigo(codigo);
+    if (!empresa) {
+      return res.status(404).json({ message: 'Código inválido' });
+    }
+
+    // Redirige al frontend de login con query param o token
+    return res.redirect(
+      302,
+      `http://localhost:5173/login?empresa=${empresa.id}` // ajusta URL de tu frontend
+    );
+  } catch (err) {
+    console.error('❌ Error al validar código de acceso:', err.message);
+    return res.status(400).json({ error: 'Código inválido' });
   }
 }
 
