@@ -5,15 +5,19 @@ services:
     image: redis:7-alpine
     container_name: redis
     command: >
-      redis-server  --maxmemory 50mb  --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
+      redis-server --maxmemory 50mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     ports:
       - "6379:6379"
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     mem_limit: 50m
     restart: always
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -26,23 +30,27 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379
       USUARIOS_SERVICE_URL: http://${CORE_PRIVATE_IP}:3001
       TICKETS_SERVICE_URL: http://${CORE_PRIVATE_IP}:3002
       CHAT_SERVICE_URL: http://${CORE_PRIVATE_IP}:3003
       NOTIFICACIONES_SERVICE_URL: http://${CORE_PRIVATE_IP}:3004
       IA_SERVICE_URL: http://${CORE_PRIVATE_IP}:3005
-      FRONTEND_URL: ${FRONTEND_URL}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL must be set}
       CUSTOM_DOMAIN: ${CUSTOM_DOMAIN:-}
-      JWT_SECRET: ${JWT_SECRET}
-      SERVICE_TOKEN: ${SERVICE_TOKEN}
-      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?SERVICE_TOKEN must be set}
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:?RECAPTCHA_SECRET_KEY must be set}
       RECAPTCHA_TEST_TOKEN: ${RECAPTCHA_TEST_TOKEN:-}
       NODE_OPTIONS: "--max-old-space-size=220"
     depends_on:
       - redis
     mem_limit: 220m
     restart: always
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health" ]
       interval: 30s
