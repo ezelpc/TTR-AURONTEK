@@ -31,7 +31,7 @@ jobs:
         run: npm test -- --coverage --ci
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v7
         with:
           files: backend/${{ matrix.service }}/coverage/coverage-final.json
           flags: ${{ matrix.service }}
@@ -60,7 +60,7 @@ jobs:
         run: pytest --cov=. --cov-report=xml --cov-report=html
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v7
         with:
           files: backend/ia-svc/coverage.xml
           flags: ia-svc
