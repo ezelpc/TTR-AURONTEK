@@ -1,0 +1,9 @@
+# Security-sensitive paths
+* @ezelpc
+
+.github/ @ezelpc
+backend/ @ezelpc
+docker-compose.core.yml @ezelpc
+docker-compose.edge.yml @ezelpc
+docs/SECURITY.md @ezelpc
+docs/THREAT_MODEL.md @ezelpc
