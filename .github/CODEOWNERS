@@ -1,0 +1,11 @@
+# Default owner for all changes
+* @ezelpc
+
+# Security-sensitive paths
+.github/ @ezelpc
+backend/ @ezelpc
+docker-compose.core.yml @ezelpc
+docker-compose.edge.yml @ezelpc
+SECURITY.md @ezelpc
+docs/SECURITY.md @ezelpc
+docs/THREAT_MODEL.md @ezelpc
