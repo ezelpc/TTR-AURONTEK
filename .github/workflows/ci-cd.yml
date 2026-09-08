@@ -11,6 +11,7 @@ permissions:
 
 env:
   REGISTRY: docker.io
+  AWS_REGION: us-east-1
 
 jobs:
   security-gate:
@@ -114,134 +115,109 @@ jobs:
           docker push "${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:latest"
 
   deploy-edge:
-    name: Deploy EDGE
+    name: Deploy EDGE via SSM
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Copy compose file
-        uses: appleboy/scp-action@v0.1.7
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          host: ${{ secrets.EDGE_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
-          source: docker-compose.edge.yml
-          target: /opt/aurontek
-      - name: Deploy EDGE
-        uses: appleboy/ssh-action@v1.0.0
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_AURONTEK_DEPLOY_ROLE_ARN }}
+          role-session-name: aurontek-edge-deploy
+          role-duration-seconds: 900
+      - name: Deploy EDGE with SSM Run Command
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          INSTANCE_ID: ${{ secrets.AURONTEK_EDGE_INSTANCE_ID }}
+          SECRET_ARN: ${{ secrets.AURONTEK_EDGE_SECRET_ARN }}
           IMAGE_TAG: ${{ github.sha }}
-          CORE_PRIVATE_IP: ${{ secrets.CORE_PRIVATE_IP }}
-          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-          CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
-          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
-          RECAPTCHA_TEST_TOKEN: ${{ secrets.RECAPTCHA_TEST_TOKEN }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-        with:
-          host: ${{ secrets.EDGE_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
-          envs: DOCKER_USERNAME,IMAGE_TAG,CORE_PRIVATE_IP,FRONTEND_URL,CUSTOM_DOMAIN,JWT_SECRET,SERVICE_TOKEN,RECAPTCHA_SECRET_KEY,RECAPTCHA_TEST_TOKEN,REDIS_PASSWORD
-          script: |
-            set -euo pipefail
-            cd /opt/aurontek
-            umask 077
-            cat > .env <<EOF
-            DOCKER_USERNAME=$DOCKER_USERNAME
-            IMAGE_TAG=$IMAGE_TAG
-            CORE_PRIVATE_IP=$CORE_PRIVATE_IP
-            FRONTEND_URL=$FRONTEND_URL
-            CUSTOM_DOMAIN=$CUSTOM_DOMAIN
-            JWT_SECRET=$JWT_SECRET
-            SERVICE_TOKEN=$SERVICE_TOKEN
-            RECAPTCHA_SECRET_KEY=$RECAPTCHA_SECRET_KEY
-            RECAPTCHA_TEST_TOKEN=$RECAPTCHA_TEST_TOKEN
-            REDIS_PASSWORD=$REDIS_PASSWORD
-            EOF
-            docker compose -f docker-compose.edge.yml pull
-            docker compose -f docker-compose.edge.yml up -d --force-recreate --remove-orphans
-            docker image prune -af
-            docker ps
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          COMPOSE_URL: https://raw.githubusercontent.com/ezelpc/AURONTEK/${{ github.sha }}/docker-compose.edge.yml
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/deploy-edge.sh <<EOF
+          set -euo pipefail
+          install -d -m 700 /opt/aurontek
+          curl --fail --silent --show-error --location '${COMPOSE_URL}' -o /opt/aurontek/docker-compose.edge.yml
+          umask 077
+          aws secretsmanager get-secret-value --secret-id '${SECRET_ARN}' --query SecretString --output text | jq -r '.env' > /opt/aurontek/.env
+          printf '%s\\n' 'IMAGE_TAG=${IMAGE_TAG}' >> /opt/aurontek/.env
+          printf '%s\\n' 'DOCKER_USERNAME=${DOCKER_USERNAME}' >> /opt/aurontek/.env
+          docker compose -f /opt/aurontek/docker-compose.edge.yml config --quiet
+          docker compose -f /opt/aurontek/docker-compose.edge.yml pull
+          docker compose -f /opt/aurontek/docker-compose.edge.yml up -d --force-recreate --remove-orphans
+          docker image prune -f
+          docker compose -f /opt/aurontek/docker-compose.edge.yml ps
+          EOF
+          PARAMS=$(jq -R -s -c '{commands: split("\\n") | map(select(length > 0))}' /tmp/deploy-edge.sh)
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name AWS-RunShellScript \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters "$PARAMS" \
+            --comment "AURONTEK EDGE ${IMAGE_TAG}" \
+            --timeout-seconds 900 \
+            --query 'Command.CommandId' \
+            --output text)
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID"
+          STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --details --query 'CommandInvocations[0].Status' --output text)
+          test "$STATUS" = "Success"
 
   deploy-core:
-    name: Deploy CORE through EDGE
+    name: Deploy CORE via SSM
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Copy compose to EDGE
-        uses: appleboy/scp-action@v0.1.7
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          host: ${{ secrets.EDGE_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
-          source: docker-compose.core.yml
-          target: /tmp
-      - name: Deploy CORE through EDGE
-        uses: appleboy/ssh-action@v1.0.0
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_AURONTEK_DEPLOY_ROLE_ARN }}
+          role-session-name: aurontek-core-deploy
+          role-duration-seconds: 900
+      - name: Deploy CORE with SSM Run Command
         env:
-          CORE_PRIVATE_IP: ${{ secrets.CORE_PRIVATE_IP }}
-          CORE_KNOWN_HOSTS: ${{ secrets.CORE_KNOWN_HOSTS }}
-          CORE_SSH_KEY: ${{ secrets.CORE_SSH_KEY }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          INSTANCE_ID: ${{ secrets.AURONTEK_CORE_INSTANCE_ID }}
+          SECRET_ARN: ${{ secrets.AURONTEK_CORE_SECRET_ARN }}
           IMAGE_TAG: ${{ github.sha }}
-          EDGE_PRIVATE_IP: ${{ secrets.EDGE_PRIVATE_IP }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
-          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-        with:
-          host: ${{ secrets.EDGE_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
-          envs: CORE_PRIVATE_IP,CORE_KNOWN_HOSTS,CORE_SSH_KEY,DOCKER_USERNAME,IMAGE_TAG,EDGE_PRIVATE_IP,MONGODB_URI,RABBITMQ_URL,JWT_SECRET,SERVICE_TOKEN,CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY,CLOUDINARY_API_SECRET,RECAPTCHA_SECRET_KEY,RESEND_API_KEY,RESEND_FROM_EMAIL,REDIS_PASSWORD
-          script: |
-            set -euo pipefail
-            mkdir -p ~/.ssh
-            chmod 700 ~/.ssh
-            printf '%s\n' "$CORE_KNOWN_HOSTS" > ~/.ssh/known_hosts
-            chmod 600 ~/.ssh/known_hosts
-            scp -i <(printf '%s\n' "$CORE_SSH_KEY") /tmp/docker-compose.core.yml "ubuntu@$CORE_PRIVATE_IP:/opt/aurontek/docker-compose.core.yml"
-            ssh -i <(printf '%s\n' "$CORE_SSH_KEY") "ubuntu@$CORE_PRIVATE_IP" 'bash -s' <<EOF
-            set -euo pipefail
-            cd /opt/aurontek
-            umask 077
-            cat > .env <<EOT
-            DOCKER_USERNAME=$DOCKER_USERNAME
-            IMAGE_TAG=$IMAGE_TAG
-            EDGE_PRIVATE_IP=$EDGE_PRIVATE_IP
-            MONGODB_URI=$MONGODB_URI
-            RABBITMQ_URL=$RABBITMQ_URL
-            JWT_SECRET=$JWT_SECRET
-            SERVICE_TOKEN=$SERVICE_TOKEN
-            CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
-            CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY
-            CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET
-            RECAPTCHA_SECRET_KEY=$RECAPTCHA_SECRET_KEY
-            RESEND_API_KEY=$RESEND_API_KEY
-            RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL
-            REDIS_PASSWORD=$REDIS_PASSWORD
-            EOT
-            docker compose -f docker-compose.core.yml pull
-            docker compose -f docker-compose.core.yml up -d --force-recreate --remove-orphans
-            docker image prune -af
-            docker ps
-            EOF
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          COMPOSE_URL: https://raw.githubusercontent.com/ezelpc/AURONTEK/${{ github.sha }}/docker-compose.core.yml
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/deploy-core.sh <<EOF
+          set -euo pipefail
+          install -d -m 700 /opt/aurontek
+          curl --fail --silent --show-error --location '${COMPOSE_URL}' -o /opt/aurontek/docker-compose.core.yml
+          umask 077
+          aws secretsmanager get-secret-value --secret-id '${SECRET_ARN}' --query SecretString --output text | jq -r '.env' > /opt/aurontek/.env
+          printf '%s\\n' 'IMAGE_TAG=${IMAGE_TAG}' >> /opt/aurontek/.env
+          printf '%s\\n' 'DOCKER_USERNAME=${DOCKER_USERNAME}' >> /opt/aurontek/.env
+          docker compose -f /opt/aurontek/docker-compose.core.yml config --quiet
+          docker compose -f /opt/aurontek/docker-compose.core.yml pull
+          docker compose -f /opt/aurontek/docker-compose.core.yml up -d --force-recreate --remove-orphans
+          docker image prune -f
+          docker compose -f /opt/aurontek/docker-compose.core.yml ps
+          EOF
+          PARAMS=$(jq -R -s -c '{commands: split("\\n") | map(select(length > 0))}' /tmp/deploy-core.sh)
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name AWS-RunShellScript \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters "$PARAMS" \
+            --comment "AURONTEK CORE ${IMAGE_TAG}" \
+            --timeout-seconds 900 \
+            --query 'Command.CommandId' \
+            --output text)
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID"
+          STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --details --query 'CommandInvocations[0].Status' --output text)
+          test "$STATUS" = "Success"
