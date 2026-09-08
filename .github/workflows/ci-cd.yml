@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Dual EC2
+name: AURONTEK CI/CD
 
 on:
   push:
@@ -6,49 +6,42 @@ on:
   pull_request:
     branches: [main, test]
 
+permissions:
+  contents: read
+
 env:
-  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   REGISTRY: docker.io
 
 jobs:
   security-gate:
     name: Security Gate
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: Install Semgrep
-        run: python -m pip install semgrep
-
+        run: python -m pip install --disable-pip-version-check --no-cache-dir semgrep
       - name: Semgrep SAST
         run: semgrep scan --config p/ci --error --exclude node_modules
-
-      - name: Gitleaks secret scan
+      - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: npm audit - all Node services
+      - name: Audit Node services
         shell: bash
         run: |
           set -euo pipefail
           for service in gateway-svc usuarios-svc tickets-svc chat-svc notificaciones-svc; do
-            echo "Auditing backend/${service}"
             npm --prefix "backend/${service}" ci --ignore-scripts
             npm --prefix "backend/${service}" audit --audit-level=high
           done
-
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
@@ -57,9 +50,7 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
-          format: table
-
-      - name: Docker Compose configuration validation
+      - name: Validate Compose files
         run: |
           docker compose -f docker-compose.edge.yml config --quiet
           docker compose -f docker-compose.core.yml config --quiet
@@ -72,165 +63,185 @@ jobs:
       matrix:
         service: [gateway-svc, usuarios-svc, tickets-svc, chat-svc, notificaciones-svc, ia-svc]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
       - name: Build ${{ matrix.service }}
-        run: docker build -t aurontek-${{ matrix.service }}:${{ github.sha }} ./backend/${{ matrix.service }}
-      - name: All services built successfully
-        if: success()
-        run: echo "All Docker images built successfully for branch ${{ github.ref_name }}"
+        run: docker build --pull -t aurontek-${{ matrix.service }}:${{ github.sha }} ./backend/${{ matrix.service }}
 
   build-and-push:
-    name: Build, Scan & Push to Docker Hub
+    name: Build, Scan & Push
     runs-on: ubuntu-latest
     needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     strategy:
       matrix:
         service: [gateway-svc, usuarios-svc, tickets-svc, chat-svc, notificaciones-svc, ia-svc]
+    permissions:
+      contents: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build image for security validation
-        uses: docker/build-push-action@v5
+      - name: Build image
+        uses: docker/build-push-action@v6
         with:
           context: ./backend/${{ matrix.service }}
           load: true
           push: false
-          no-cache: true
           tags: ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }}
-      - name: Trivy container scan
+      - name: Scan image
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }}
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
-          format: table
       - name: Generate SBOM
         uses: anchore/sbom-action@v0.17.0
         with:
           image: ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }}
           format: spdx-json
           artifact-name: sbom-${{ matrix.service }}-${{ github.sha }}.spdx.json
-      - name: Push immutable image tag
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }}
-      - name: Push latest image tag
+      - name: Push immutable image
+        run: docker push "${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }}"
+      - name: Push latest tag
         run: |
-          docker tag ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:latest
+          docker tag "${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:${{ github.sha }}" "${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:latest"
+          docker push "${{ secrets.DOCKER_USERNAME }}/aurontek-${{ matrix.service }}:latest"
 
-  deploy-to-edge:
-    name: Deploy to EDGE (Public EC2)
+  deploy-edge:
+    name: Deploy EDGE
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Copy docker-compose.edge.yml to EDGE
+      - uses: actions/checkout@v4
+      - name: Copy compose file
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EDGE_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
           source: docker-compose.edge.yml
           target: /opt/aurontek
-      - name: Deploy to EDGE
+      - name: Deploy EDGE
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          CORE_PRIVATE_IP: ${{ secrets.CORE_PRIVATE_IP }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
+          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
+          RECAPTCHA_TEST_TOKEN: ${{ secrets.RECAPTCHA_TEST_TOKEN }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         with:
           host: ${{ secrets.EDGE_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
+          envs: DOCKER_USERNAME,IMAGE_TAG,CORE_PRIVATE_IP,FRONTEND_URL,CUSTOM_DOMAIN,JWT_SECRET,SERVICE_TOKEN,RECAPTCHA_SECRET_KEY,RECAPTCHA_TEST_TOKEN,REDIS_PASSWORD
           script: |
-            set -e
+            set -euo pipefail
             cd /opt/aurontek
             umask 077
             cat > .env <<EOF
-            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            IMAGE_TAG=${{ github.sha }}
-            CORE_PRIVATE_IP=${{ secrets.CORE_PRIVATE_IP }}
-            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
-            CUSTOM_DOMAIN=${{ secrets.CUSTOM_DOMAIN }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            SERVICE_TOKEN=${{ secrets.SERVICE_TOKEN }}
-            RECAPTCHA_SECRET_KEY=${{ secrets.RECAPTCHA_SECRET_KEY }}
-            RECAPTCHA_TEST_TOKEN=${{ secrets.RECAPTCHA_TEST_TOKEN }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            DOCKER_USERNAME=$DOCKER_USERNAME
+            IMAGE_TAG=$IMAGE_TAG
+            CORE_PRIVATE_IP=$CORE_PRIVATE_IP
+            FRONTEND_URL=$FRONTEND_URL
+            CUSTOM_DOMAIN=$CUSTOM_DOMAIN
+            JWT_SECRET=$JWT_SECRET
+            SERVICE_TOKEN=$SERVICE_TOKEN
+            RECAPTCHA_SECRET_KEY=$RECAPTCHA_SECRET_KEY
+            RECAPTCHA_TEST_TOKEN=$RECAPTCHA_TEST_TOKEN
+            REDIS_PASSWORD=$REDIS_PASSWORD
             EOF
             docker compose -f docker-compose.edge.yml pull
             docker compose -f docker-compose.edge.yml up -d --force-recreate --remove-orphans
             docker image prune -af
-            echo "EDGE deployment complete"
             docker ps
-            free -h
-      - name: EDGE deployment successful
-        run: echo "EDGE instance deployed successfully!"
 
-  deploy-to-core:
-    name: Deploy to CORE (Private EC2)
+  deploy-core:
+    name: Deploy CORE through EDGE
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Copy docker-compose.core.yml to EDGE
+      - uses: actions/checkout@v4
+      - name: Copy compose to EDGE
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EDGE_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
           source: docker-compose.core.yml
           target: /tmp
-      - name: Deploy to CORE via EDGE
+      - name: Deploy CORE through EDGE
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          CORE_PRIVATE_IP: ${{ secrets.CORE_PRIVATE_IP }}
+          CORE_KNOWN_HOSTS: ${{ secrets.CORE_KNOWN_HOSTS }}
+          CORE_SSH_KEY: ${{ secrets.CORE_SSH_KEY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          EDGE_PRIVATE_IP: ${{ secrets.EDGE_PRIVATE_IP }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SERVICE_TOKEN: ${{ secrets.SERVICE_TOKEN }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         with:
           host: ${{ secrets.EDGE_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          fingerprint: ${{ secrets.EDGE_HOST_FINGERPRINT }}
+          envs: CORE_PRIVATE_IP,CORE_KNOWN_HOSTS,CORE_SSH_KEY,DOCKER_USERNAME,IMAGE_TAG,EDGE_PRIVATE_IP,MONGODB_URI,RABBITMQ_URL,JWT_SECRET,SERVICE_TOKEN,CLOUDINARY_CLOUD_NAME,CLOUDINARY_API_KEY,CLOUDINARY_API_SECRET,RECAPTCHA_SECRET_KEY,RESEND_API_KEY,RESEND_FROM_EMAIL,REDIS_PASSWORD
           script: |
-            set -e
-            umask 077
+            set -euo pipefail
             mkdir -p ~/.ssh
-            echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-            chmod 600 ~/.ssh/id_rsa
-            scp -o StrictHostKeyChecking=no /tmp/docker-compose.core.yml ubuntu@${{ secrets.CORE_PRIVATE_IP }}:/opt/aurontek/
-            ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.CORE_PRIVATE_IP }} << 'ENDSSH'
-            set -e
+            chmod 700 ~/.ssh
+            printf '%s\n' "$CORE_KNOWN_HOSTS" > ~/.ssh/known_hosts
+            chmod 600 ~/.ssh/known_hosts
+            scp -i <(printf '%s\n' "$CORE_SSH_KEY") /tmp/docker-compose.core.yml "ubuntu@$CORE_PRIVATE_IP:/opt/aurontek/docker-compose.core.yml"
+            ssh -i <(printf '%s\n' "$CORE_SSH_KEY") "ubuntu@$CORE_PRIVATE_IP" 'bash -s' <<EOF
+            set -euo pipefail
             cd /opt/aurontek
             umask 077
-            cat > .env <<EOF
-            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            IMAGE_TAG=${{ github.sha }}
-            EDGE_PRIVATE_IP=${{ secrets.EDGE_PRIVATE_IP }}
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
-            RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            SERVICE_TOKEN=${{ secrets.SERVICE_TOKEN }}
-            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
-            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
-            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-            RECAPTCHA_SECRET_KEY=${{ secrets.RECAPTCHA_SECRET_KEY }}
-            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
-            RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            EOF
+            cat > .env <<EOT
+            DOCKER_USERNAME=$DOCKER_USERNAME
+            IMAGE_TAG=$IMAGE_TAG
+            EDGE_PRIVATE_IP=$EDGE_PRIVATE_IP
+            MONGODB_URI=$MONGODB_URI
+            RABBITMQ_URL=$RABBITMQ_URL
+            JWT_SECRET=$JWT_SECRET
+            SERVICE_TOKEN=$SERVICE_TOKEN
+            CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
+            CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY
+            CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET
+            RECAPTCHA_SECRET_KEY=$RECAPTCHA_SECRET_KEY
+            RESEND_API_KEY=$RESEND_API_KEY
+            RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL
+            REDIS_PASSWORD=$REDIS_PASSWORD
+            EOT
             docker compose -f docker-compose.core.yml pull
             docker compose -f docker-compose.core.yml up -d --force-recreate --remove-orphans
             docker image prune -af
-            echo "CORE deployment complete"
             docker ps
-            free -h
-            ENDSSH
-      - name: CORE deployment successful
-        run: echo "CORE instance deployed successfully!"
+            EOF
