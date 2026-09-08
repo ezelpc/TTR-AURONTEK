@@ -78,7 +78,7 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
 
 resource "aws_iam_policy" "instance_secret_access" {
   name        = "aurontek-instance-secret-read"
-  description = "Read the deployment .env payload from the Aurontek deployment secret. Attach to the EC2 instance role used by SSM-managed nodes."
+  description = "Read only the EDGE and CORE deployment environment payloads from Secrets Manager. Attach this policy to the EC2 instance role used by SSM-managed Aurontek nodes."
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -86,7 +86,8 @@ resource "aws_iam_policy" "instance_secret_access" {
       Effect = "Allow"
       Action = ["secretsmanager:GetSecretValue"]
       Resource = [
-        aws_secretsmanager_secret.application.arn
+        aws_secretsmanager_secret.edge_deploy.arn,
+        aws_secretsmanager_secret.core_deploy.arn
       ]
     }]
   })
