@@ -34,6 +34,16 @@ output "instance_secret_access_policy_arn" {
 }
 
 output "application_secret_arn" {
-  description = "Secrets Manager ARN used for deployment environment payloads"
+  description = "Generic application secret container ARN"
   value       = aws_secretsmanager_secret.application.arn
+}
+
+output "edge_deploy_secret_arn" {
+  description = "EDGE deployment environment secret ARN"
+  value       = aws_secretsmanager_secret.edge_deploy.arn
+}
+
+output "core_deploy_secret_arn" {
+  description = "CORE deployment environment secret ARN"
+  value       = aws_secretsmanager_secret.core_deploy.arn
 }
