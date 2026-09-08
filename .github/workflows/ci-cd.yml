@@ -131,7 +131,7 @@ jobs:
           source: docker-compose.edge.yml
           target: /opt/aurontek
       - name: Deploy EDGE
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.2.5
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           IMAGE_TAG: ${{ github.sha }}
@@ -188,7 +188,7 @@ jobs:
           source: docker-compose.core.yml
           target: /tmp
       - name: Deploy CORE through EDGE
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.2.5
         env:
           CORE_PRIVATE_IP: ${{ secrets.CORE_PRIVATE_IP }}
           CORE_KNOWN_HOSTS: ${{ secrets.CORE_KNOWN_HOSTS }}
