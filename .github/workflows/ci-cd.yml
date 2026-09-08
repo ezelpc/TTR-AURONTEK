@@ -31,7 +31,7 @@ jobs:
       - name: Semgrep SAST
         run: semgrep scan --config p/ci --error --exclude node_modules
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Audit Node services
