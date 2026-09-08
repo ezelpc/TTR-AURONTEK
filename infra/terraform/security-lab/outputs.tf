@@ -22,3 +22,18 @@ output "account_id" {
   description = "AWS account ID used for deployment"
   value       = data.aws_caller_identity.current.account_id
 }
+
+output "github_actions_deploy_role_arn" {
+  description = "IAM role ARN assumed by GitHub Actions through OIDC for SSM deployments"
+  value       = aws_iam_role.github_actions_deploy.arn
+}
+
+output "instance_secret_access_policy_arn" {
+  description = "IAM policy ARN to attach to the EC2 instance role used by SSM-managed Aurontek nodes"
+  value       = aws_iam_policy.instance_secret_access.arn
+}
+
+output "application_secret_arn" {
+  description = "Secrets Manager ARN used for deployment environment payloads"
+  value       = aws_secretsmanager_secret.application.arn
+}
