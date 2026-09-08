@@ -165,3 +165,15 @@ resource "aws_secretsmanager_secret" "application" {
   description             = "Application secret container; secret value is managed outside source control."
   recovery_window_in_days = 7
 }
+
+resource "aws_secretsmanager_secret" "edge_deploy" {
+  name                    = "aurontek/${var.environment}/edge-deploy"
+  description             = "EDGE deployment environment payload; value is managed outside source control."
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret" "core_deploy" {
+  name                    = "aurontek/${var.environment}/core-deploy"
+  description             = "CORE deployment environment payload; value is managed outside source control."
+  recovery_window_in_days = 7
+}
